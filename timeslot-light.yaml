@@ -1,0 +1,719 @@
+blueprint:
+  name: Timeslot Light Control v1.1
+  description: >
+    # 💡 Timeslot Light Control
+
+    **Version: 1.1**
+
+    Steuere deine Lichter mit Zeitfenstern, Fade-In/Fade-Out und flexibler Lichteinstellung.
+
+
+    **Funktionen:**
+
+    - **Trigger:** Binary Sensor (z. B. Bewegungsmelder) oder Schedule (Zeitplan)
+    - **Lichter:** Auswahl über Entities, Areas oder Devices
+    - **Zeitfenster (Timeslots):** Bis zu 5 konfigurierbare Zeitfenster mit individueller Helligkeit, Farbtemperatur oder RGB-Farbe
+    - **Fade-In / Fade-Out:** Optionale sanfte Übergänge beim Ein- und Ausschalten
+
+
+    **So funktioniert es:**
+
+    1. Wähle einen Trigger (Binary Sensor oder Schedule).
+    2. Wähle die Lichter aus.
+    3. Konfiguriere bis zu 5 Zeitfenster mit individuellen Lichteinstellungen.
+    4. Optional: Aktiviere Fade-In und/oder Fade-Out.
+
+
+    Wenn der Trigger aktiv wird, wird geprüft, welches Zeitfenster gerade aktiv ist und die entsprechenden Lichteinstellungen werden angewendet.
+    Wenn kein Zeitfenster aktiv ist, passiert nichts.
+
+
+    Required = *
+
+  domain: automation
+  source_url: https://github.com/home-assistant/core
+  input:
+    # ─────────────────────────────────────────────
+    # TRIGGER
+    # ─────────────────────────────────────────────
+    trigger_settings:
+      name: "🎯 Trigger *"
+      icon: mdi:motion-sensor
+      collapsed: false
+      input:
+        trigger_entity:
+          name: Trigger – Binary Sensor oder Schedule *
+          description: >
+            Wähle einen oder mehrere **Binary Sensors** (z. B. Bewegungsmelder, Türkontakt) oder
+            einen **Schedule** (Zeitplan-Helfer) als Auslöser für die Lichtsteuerung.
+
+
+            - **Binary Sensor → ON:** Licht einschalten
+            - **Binary Sensor → OFF:** Licht ausschalten
+            - **Schedule → ON:** Licht einschalten
+            - **Schedule → OFF:** Licht ausschalten
+          default: []
+          selector:
+            entity:
+              filter:
+                domain:
+                  - binary_sensor
+                  - schedule
+              multiple: true
+
+        trigger_off_delay:
+          name: Verzögerung beim Ausschalten (Minuten)
+          description: >
+            Wie lange soll das Licht noch brennen, nachdem der Trigger inaktiv wird (z. B. keine Bewegung mehr)?
+            Bei Schedule-Trigger wird dies ignoriert.
+          default: 0
+          selector:
+            number:
+              min: 0
+              max: 60
+              step: 0.5
+              unit_of_measurement: minutes
+              mode: slider
+
+    # ─────────────────────────────────────────────
+    # LICHTER
+    # ─────────────────────────────────────────────
+    light_settings:
+      name: "💡 Lichter *"
+      icon: mdi:lightbulb-group-outline
+      collapsed: false
+      input:
+        light_targets:
+          name: Lichter – Entities, Areas oder Devices *
+          description: >
+            Wähle die Lichter aus, die gesteuert werden sollen.
+            Du kannst einzelne **Entitäten**, **Bereiche (Areas)** oder **Geräte (Devices)** auswählen.
+          selector:
+            target:
+              entity:
+                domain: light
+
+    # ─────────────────────────────────────────────
+    # FADE IN / FADE OUT
+    # ─────────────────────────────────────────────
+    fade_settings:
+      name: "🌅 Fade In / Fade Out (Optional)"
+      icon: mdi:transition
+      collapsed: true
+      input:
+        use_fade_in:
+          name: Fade-In aktivieren
+          description: >
+            Wenn aktiviert, werden die Lichter sanft eingeblendet (Übergang von 0 auf die Ziel-Helligkeit).
+          default: false
+          selector:
+            boolean:
+
+        fade_in_duration:
+          name: Fade-In Dauer (Sekunden)
+          description: >
+            Wie lange soll das Einblenden dauern? (z. B. 5 Sekunden)
+          default: 5
+          selector:
+            number:
+              min: 1
+              max: 60
+              step: 1
+              unit_of_measurement: seconds
+              mode: slider
+
+        use_fade_out:
+          name: Fade-Out aktivieren
+          description: >
+            Wenn aktiviert, werden die Lichter sanft ausgeblendet (Übergang von aktueller Helligkeit auf 0).
+          default: false
+          selector:
+            boolean:
+
+        fade_out_duration:
+          name: Fade-Out Dauer (Sekunden)
+          description: >
+            Wie lange soll das Ausblenden dauern? (z. B. 5 Sekunden)
+          default: 5
+          selector:
+            number:
+              min: 1
+              max: 60
+              step: 1
+              unit_of_measurement: seconds
+              mode: slider
+
+    # ─────────────────────────────────────────────
+    # ZEITFENSTER 1
+    # ─────────────────────────────────────────────
+    timeslot_1:
+      name: "⏰ Zeitfenster 1 (Optional)"
+      icon: mdi:clock-time-one-outline
+      collapsed: true
+      input:
+        ts1_enabled:
+          name: Zeitfenster 1 aktivieren
+          default: false
+          selector:
+            boolean:
+
+        ts1_start:
+          name: Startzeit
+          description: Startzeit des Zeitfensters (z. B. 18:00)
+          default: "18:00:00"
+          selector:
+            time:
+
+        ts1_end:
+          name: Endzeit
+          description: Endzeit des Zeitfensters (z. B. 23:00)
+          default: "23:00:00"
+          selector:
+            time:
+
+        ts1_brightness:
+          name: Helligkeit (%)
+          description: Helligkeit der Lichter in diesem Zeitfenster (1–100 %)
+          default: 80
+          selector:
+            number:
+              min: 1
+              max: 100
+              step: 1
+              unit_of_measurement: "%"
+              mode: slider
+
+        ts1_color_mode:
+          name: Farbmodus
+          description: Wähle, ob du Farbtemperatur oder eine RGB-Farbe verwenden möchtest.
+          default: "color_temp"
+          selector:
+            select:
+              options:
+                - label: Farbtemperatur (Kelvin)
+                  value: "color_temp"
+                - label: RGB-Farbe
+                  value: "rgb"
+                - label: Nur Helligkeit (keine Farbe)
+                  value: "none"
+
+        ts1_color_temp:
+          name: Farbtemperatur (Kelvin)
+          description: Farbtemperatur in Kelvin (z. B. 2700 = warm, 5000 = kalt/neutral)
+          default: 3000
+          selector:
+            number:
+              min: 2000
+              max: 6500
+              step: 100
+              unit_of_measurement: "K"
+              mode: slider
+
+        ts1_rgb_color:
+          name: RGB-Farbe
+          description: Farbe des Lichts in diesem Zeitfenster (nur wenn Farbmodus = RGB)
+          default: [255, 200, 100]
+          selector:
+            color_rgb:
+
+    # ─────────────────────────────────────────────
+    # ZEITFENSTER 2
+    # ─────────────────────────────────────────────
+    timeslot_2:
+      name: "⏰ Zeitfenster 2 (Optional)"
+      icon: mdi:clock-time-two-outline
+      collapsed: true
+      input:
+        ts2_enabled:
+          name: Zeitfenster 2 aktivieren
+          default: false
+          selector:
+            boolean:
+
+        ts2_start:
+          name: Startzeit
+          default: "07:00:00"
+          selector:
+            time:
+
+        ts2_end:
+          name: Endzeit
+          default: "09:00:00"
+          selector:
+            time:
+
+        ts2_brightness:
+          name: Helligkeit (%)
+          default: 100
+          selector:
+            number:
+              min: 1
+              max: 100
+              step: 1
+              unit_of_measurement: "%"
+              mode: slider
+
+        ts2_color_mode:
+          name: Farbmodus
+          default: "color_temp"
+          selector:
+            select:
+              options:
+                - label: Farbtemperatur (Kelvin)
+                  value: "color_temp"
+                - label: RGB-Farbe
+                  value: "rgb"
+                - label: Nur Helligkeit (keine Farbe)
+                  value: "none"
+
+        ts2_color_temp:
+          name: Farbtemperatur (Kelvin)
+          default: 5000
+          selector:
+            number:
+              min: 2000
+              max: 6500
+              step: 100
+              unit_of_measurement: "K"
+              mode: slider
+
+        ts2_rgb_color:
+          name: RGB-Farbe
+          default: [255, 255, 255]
+          selector:
+            color_rgb:
+
+    # ─────────────────────────────────────────────
+    # ZEITFENSTER 3
+    # ─────────────────────────────────────────────
+    timeslot_3:
+      name: "⏰ Zeitfenster 3 (Optional)"
+      icon: mdi:clock-time-three-outline
+      collapsed: true
+      input:
+        ts3_enabled:
+          name: Zeitfenster 3 aktivieren
+          default: false
+          selector:
+            boolean:
+
+        ts3_start:
+          name: Startzeit
+          default: "12:00:00"
+          selector:
+            time:
+
+        ts3_end:
+          name: Endzeit
+          default: "14:00:00"
+          selector:
+            time:
+
+        ts3_brightness:
+          name: Helligkeit (%)
+          default: 100
+          selector:
+            number:
+              min: 1
+              max: 100
+              step: 1
+              unit_of_measurement: "%"
+              mode: slider
+
+        ts3_color_mode:
+          name: Farbmodus
+          default: "none"
+          selector:
+            select:
+              options:
+                - label: Farbtemperatur (Kelvin)
+                  value: "color_temp"
+                - label: RGB-Farbe
+                  value: "rgb"
+                - label: Nur Helligkeit (keine Farbe)
+                  value: "none"
+
+        ts3_color_temp:
+          name: Farbtemperatur (Kelvin)
+          default: 4000
+          selector:
+            number:
+              min: 2000
+              max: 6500
+              step: 100
+              unit_of_measurement: "K"
+              mode: slider
+
+        ts3_rgb_color:
+          name: RGB-Farbe
+          default: [255, 255, 255]
+          selector:
+            color_rgb:
+
+    # ─────────────────────────────────────────────
+    # ZEITFENSTER 4
+    # ─────────────────────────────────────────────
+    timeslot_4:
+      name: "⏰ Zeitfenster 4 (Optional)"
+      icon: mdi:clock-time-four-outline
+      collapsed: true
+      input:
+        ts4_enabled:
+          name: Zeitfenster 4 aktivieren
+          default: false
+          selector:
+            boolean:
+
+        ts4_start:
+          name: Startzeit
+          default: "16:00:00"
+          selector:
+            time:
+
+        ts4_end:
+          name: Endzeit
+          default: "18:00:00"
+          selector:
+            time:
+
+        ts4_brightness:
+          name: Helligkeit (%)
+          default: 70
+          selector:
+            number:
+              min: 1
+              max: 100
+              step: 1
+              unit_of_measurement: "%"
+              mode: slider
+
+        ts4_color_mode:
+          name: Farbmodus
+          default: "color_temp"
+          selector:
+            select:
+              options:
+                - label: Farbtemperatur (Kelvin)
+                  value: "color_temp"
+                - label: RGB-Farbe
+                  value: "rgb"
+                - label: Nur Helligkeit (keine Farbe)
+                  value: "none"
+
+        ts4_color_temp:
+          name: Farbtemperatur (Kelvin)
+          default: 3500
+          selector:
+            number:
+              min: 2000
+              max: 6500
+              step: 100
+              unit_of_measurement: "K"
+              mode: slider
+
+        ts4_rgb_color:
+          name: RGB-Farbe
+          default: [255, 180, 80]
+          selector:
+            color_rgb:
+
+    # ─────────────────────────────────────────────
+    # ZEITFENSTER 5
+    # ─────────────────────────────────────────────
+    timeslot_5:
+      name: "⏰ Zeitfenster 5 (Optional)"
+      icon: mdi:clock-time-five-outline
+      collapsed: true
+      input:
+        ts5_enabled:
+          name: Zeitfenster 5 aktivieren
+          default: false
+          selector:
+            boolean:
+
+        ts5_start:
+          name: Startzeit
+          default: "22:00:00"
+          selector:
+            time:
+
+        ts5_end:
+          name: Endzeit
+          default: "23:59:00"
+          selector:
+            time:
+
+        ts5_brightness:
+          name: Helligkeit (%)
+          default: 20
+          selector:
+            number:
+              min: 1
+              max: 100
+              step: 1
+              unit_of_measurement: "%"
+              mode: slider
+
+        ts5_color_mode:
+          name: Farbmodus
+          default: "color_temp"
+          selector:
+            select:
+              options:
+                - label: Farbtemperatur (Kelvin)
+                  value: "color_temp"
+                - label: RGB-Farbe
+                  value: "rgb"
+                - label: Nur Helligkeit (keine Farbe)
+                  value: "none"
+
+        ts5_color_temp:
+          name: Farbtemperatur (Kelvin)
+          default: 2200
+          selector:
+            number:
+              min: 2000
+              max: 6500
+              step: 100
+              unit_of_measurement: "K"
+              mode: slider
+
+        ts5_rgb_color:
+          name: RGB-Farbe
+          default: [255, 100, 30]
+          selector:
+            color_rgb:
+
+
+# ─────────────────────────────────────────────
+# TRIGGER DEFINITION
+# ─────────────────────────────────────────────
+triggers:
+  - trigger: state
+    entity_id: !input trigger_entity
+    to: "on"
+    id: "trigger_on"
+  - trigger: state
+    entity_id: !input trigger_entity
+    to: "off"
+    for:
+      minutes: !input trigger_off_delay
+    id: "trigger_off"
+
+# ─────────────────────────────────────────────
+# VARIABLEN
+# ─────────────────────────────────────────────
+variables:
+  # Zeitfenster-Eingaben
+  ts1_enabled: !input ts1_enabled
+  ts1_start: !input ts1_start
+  ts1_end: !input ts1_end
+  ts1_brightness: !input ts1_brightness
+  ts1_color_mode: !input ts1_color_mode
+  ts1_color_temp: !input ts1_color_temp
+  ts1_rgb_color: !input ts1_rgb_color
+
+  ts2_enabled: !input ts2_enabled
+  ts2_start: !input ts2_start
+  ts2_end: !input ts2_end
+  ts2_brightness: !input ts2_brightness
+  ts2_color_mode: !input ts2_color_mode
+  ts2_color_temp: !input ts2_color_temp
+  ts2_rgb_color: !input ts2_rgb_color
+
+  ts3_enabled: !input ts3_enabled
+  ts3_start: !input ts3_start
+  ts3_end: !input ts3_end
+  ts3_brightness: !input ts3_brightness
+  ts3_color_mode: !input ts3_color_mode
+  ts3_color_temp: !input ts3_color_temp
+  ts3_rgb_color: !input ts3_rgb_color
+
+  ts4_enabled: !input ts4_enabled
+  ts4_start: !input ts4_start
+  ts4_end: !input ts4_end
+  ts4_brightness: !input ts4_brightness
+  ts4_color_mode: !input ts4_color_mode
+  ts4_color_temp: !input ts4_color_temp
+  ts4_rgb_color: !input ts4_rgb_color
+
+  ts5_enabled: !input ts5_enabled
+  ts5_start: !input ts5_start
+  ts5_end: !input ts5_end
+  ts5_brightness: !input ts5_brightness
+  ts5_color_mode: !input ts5_color_mode
+  ts5_color_temp: !input ts5_color_temp
+  ts5_rgb_color: !input ts5_rgb_color
+
+  # Fade-Einstellungen
+  use_fade_in: !input use_fade_in
+  fade_in_duration: !input fade_in_duration
+  use_fade_out: !input use_fade_out
+  fade_out_duration: !input fade_out_duration
+
+  # Aktuell aktives Zeitfenster ermitteln (0 = keins aktiv)
+  # >- + Jinja2 whitespace-control sorgt für sauberen Integer-String ohne Leerzeichen
+  active_slot: >-
+    {%- set t = now().strftime('%H:%M:%S') -%}
+    {%- if ts1_enabled and ts1_start <= t < ts1_end -%}1
+    {%- elif ts2_enabled and ts2_start <= t < ts2_end -%}2
+    {%- elif ts3_enabled and ts3_start <= t < ts3_end -%}3
+    {%- elif ts4_enabled and ts4_start <= t < ts4_end -%}4
+    {%- elif ts5_enabled and ts5_start <= t < ts5_end -%}5
+    {%- else -%}0{%- endif -%}
+
+  active_brightness: >-
+    {%- set s = active_slot | int -%}
+    {%- if s == 1 -%}{{ ts1_brightness }}
+    {%- elif s == 2 -%}{{ ts2_brightness }}
+    {%- elif s == 3 -%}{{ ts3_brightness }}
+    {%- elif s == 4 -%}{{ ts4_brightness }}
+    {%- elif s == 5 -%}{{ ts5_brightness }}
+    {%- else -%}100{%- endif -%}
+
+  active_color_mode: >-
+    {%- set s = active_slot | int -%}
+    {%- if s == 1 -%}{{ ts1_color_mode }}
+    {%- elif s == 2 -%}{{ ts2_color_mode }}
+    {%- elif s == 3 -%}{{ ts3_color_mode }}
+    {%- elif s == 4 -%}{{ ts4_color_mode }}
+    {%- elif s == 5 -%}{{ ts5_color_mode }}
+    {%- else -%}none{%- endif -%}
+
+  active_color_temp: >-
+    {%- set s = active_slot | int -%}
+    {%- if s == 1 -%}{{ ts1_color_temp }}
+    {%- elif s == 2 -%}{{ ts2_color_temp }}
+    {%- elif s == 3 -%}{{ ts3_color_temp }}
+    {%- elif s == 4 -%}{{ ts4_color_temp }}
+    {%- elif s == 5 -%}{{ ts5_color_temp }}
+    {%- else -%}4000{%- endif -%}
+
+  active_rgb_color: >-
+    {%- set s = active_slot | int -%}
+    {%- if s == 1 -%}{{ ts1_rgb_color }}
+    {%- elif s == 2 -%}{{ ts2_rgb_color }}
+    {%- elif s == 3 -%}{{ ts3_rgb_color }}
+    {%- elif s == 4 -%}{{ ts4_rgb_color }}
+    {%- elif s == 5 -%}{{ ts5_rgb_color }}
+    {%- else -%}[255, 255, 255]{%- endif -%}
+
+# ─────────────────────────────────────────────
+# AKTIONEN
+# ─────────────────────────────────────────────
+actions:
+  - choose:
+      # ── LICHT EINSCHALTEN (Trigger ON) ────────
+      - conditions:
+          - condition: trigger
+            id: "trigger_on"
+          - condition: template
+            value_template: "{{ active_slot | int > 0 }}"
+        sequence:
+          # Fade-In: Licht erst auf 1% setzen, dann hochdimmen
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ use_fade_in }}"
+                sequence:
+                  # Schritt 1: Licht bei 1% einschalten (kein Übergang)
+                  - action: light.turn_on
+                    target: !input light_targets
+                    data:
+                      brightness_pct: 1
+                      transition: 0
+                  # Kurze Pause
+                  - delay:
+                      milliseconds: 200
+                  # Schritt 2: Auf Zielhelligkeit einblenden (mit Fade-Dauer)
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ active_color_mode == 'color_temp' }}"
+                        sequence:
+                          - action: light.turn_on
+                            target: !input light_targets
+                            data:
+                              brightness_pct: "{{ active_brightness | int }}"
+                              kelvin: "{{ active_color_temp | int }}"
+                              transition: "{{ fade_in_duration | int }}"
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ active_color_mode == 'rgb' }}"
+                        sequence:
+                          - action: light.turn_on
+                            target: !input light_targets
+                            data:
+                              brightness_pct: "{{ active_brightness | int }}"
+                              rgb_color: "{{ active_rgb_color }}"
+                              transition: "{{ fade_in_duration | int }}"
+                    default:
+                      - action: light.turn_on
+                        target: !input light_targets
+                        data:
+                          brightness_pct: "{{ active_brightness | int }}"
+                          transition: "{{ fade_in_duration | int }}"
+            # Kein Fade-In: Direkt einschalten
+            default:
+              - choose:
+                  - conditions:
+                      - condition: template
+                        value_template: "{{ active_color_mode == 'color_temp' }}"
+                    sequence:
+                      - action: light.turn_on
+                        target: !input light_targets
+                        data:
+                          brightness_pct: "{{ active_brightness | int }}"
+                          kelvin: "{{ active_color_temp | int }}"
+                          transition: 1
+                  - conditions:
+                      - condition: template
+                        value_template: "{{ active_color_mode == 'rgb' }}"
+                    sequence:
+                      - action: light.turn_on
+                        target: !input light_targets
+                        data:
+                          brightness_pct: "{{ active_brightness | int }}"
+                          rgb_color: "{{ active_rgb_color }}"
+                          transition: 1
+                default:
+                  - action: light.turn_on
+                    target: !input light_targets
+                    data:
+                      brightness_pct: "{{ active_brightness | int }}"
+                      transition: 1
+
+      # ── LICHT AUSSCHALTEN (Trigger OFF) ───────
+      - conditions:
+          - condition: trigger
+            id: "trigger_off"
+        sequence:
+          - choose:
+              # Fade-Out: Erst auf 1% dimmen, dann ausschalten
+              - conditions:
+                  - condition: template
+                    value_template: "{{ use_fade_out }}"
+                sequence:
+                  # Schritt 1: Auf 1% ausblenden
+                  - action: light.turn_on
+                    target: !input light_targets
+                    data:
+                      brightness_pct: 1
+                      transition: "{{ fade_out_duration | int }}"
+                  # Warten bis Fade-Out abgeschlossen
+                  - delay:
+                      seconds: "{{ fade_out_duration | int }}"
+                  # Schritt 2: Licht ausschalten
+                  - action: light.turn_off
+                    target: !input light_targets
+                    data:
+                      transition: 0
+            # Kein Fade-Out: Direkt ausschalten
+            default:
+              - action: light.turn_off
+                target: !input light_targets
+                data:
+                  transition: 1
+
+mode: restart
+max_exceeded: silent
