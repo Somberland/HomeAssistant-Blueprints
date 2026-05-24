@@ -1,9 +1,9 @@
 blueprint:
-  name: Timeslot Light Control v1.5
+  name: Timeslot Light Control v1.6
   description: >
     # 💡 Timeslot Light Control
 
-    **Version: 1.5** · [GitHub](https://github.com/Somberland/HomeAssistant-Blueprints) · Autor: Phil Skorpil
+    **Version: 1.6** · [GitHub](https://github.com/Somberland/HomeAssistant-Blueprints) · Autor: Phil Skorpil
 
 
     Steuere deine Lichter mit Zeitfenstern, Fade-In/Fade-Out und flexibler Lichteinstellung.
@@ -15,6 +15,7 @@ blueprint:
     - **Lichter:** Auswahl über Entities, Areas oder Devices
     - **Standard-Einstellung:** 24h-Fallback wenn kein Zeitfenster aktiv ist
     - **Zeitfenster (Timeslots):** Bis zu 5 konfigurierbare Zeitfenster mit individueller Helligkeit, Farbtemperatur oder RGB-Farbe
+    - **Helligkeitssensor (Lux):** Optionale Lux-basierte Steuerung – Licht nur bei Dunkelheit + automatischer Helligkeits-Boost
     - **Fade-In / Fade-Out:** Optionale sanfte Übergänge beim Ein- und Ausschalten
 
 
@@ -24,10 +25,17 @@ blueprint:
     2. Wähle die Lichter aus.
     3. Optional: Konfiguriere bis zu 5 Zeitfenster mit individuellen Lichteinstellungen.
     4. Optional: Aktiviere Fade-In und/oder Fade-Out.
+    5. Optional: Konfiguriere einen Lux-Sensor für helligkeitsabhängige Steuerung.
 
 
     Wenn der Trigger aktiv wird, wird geprüft, welches Zeitfenster gerade aktiv ist und die entsprechenden Lichteinstellungen werden angewendet.
     Wenn kein Zeitfenster aktiv ist, wird die Standard-Einstellung verwendet (sofern aktiviert).
+
+
+    **💡 Tipp – Lücken zwischen Zeitfenstern:**
+    Wenn die Standard-Einstellung deaktiviert ist und keine Zeitfenster aktiv sind,
+    wird der Trigger ignoriert und das Licht nicht eingeschaltet.
+    Das lässt sich gezielt als **Sperrzeit** nutzen – z. B. tagsüber keine Bewegungssteuerung.
 
 
     Required = *
@@ -143,6 +151,93 @@ blueprint:
               max: 60
               step: 1
               unit_of_measurement: seconds
+              mode: slider
+
+    # ─────────────────────────────────────────────
+    # HELLIGKEITSSENSOR (LUX)
+    # ─────────────────────────────────────────────
+    lux_settings:
+      name: "☀️ Helligkeitssensor / Lux (Optional)"
+      icon: mdi:brightness-5
+      collapsed: true
+      input:
+        lux_enabled:
+          name: Helligkeitssensor aktivieren
+          description: >
+            Wenn aktiviert, wird der Lux-Sensor zur Steuerung genutzt.
+            Das Licht schaltet sich nur ein wenn der Raum/Bereich dunkel genug ist.
+            Außerdem kann die Helligkeit bei sehr niedrigen Lux-Werten automatisch erhöht werden.
+          default: false
+          selector:
+            boolean:
+
+        lux_sensor:
+          name: Helligkeitssensor (Lux)
+          description: >
+            Wähle einen Helligkeitssensor (Illuminance) aus.
+            Nur relevant wenn "Helligkeitssensor aktivieren" eingeschaltet ist.
+          default: []
+          selector:
+            entity:
+              filter:
+                domain: sensor
+                device_class: illuminance
+
+        lux_max_threshold:
+          name: Max. Helligkeit zum Einschalten (Lux)
+          description: >
+            Das Licht schaltet sich **nur ein wenn der Lux-Wert unter diesem Schwellenwert liegt**.
+            Ist es heller als dieser Wert, wird der Trigger ignoriert – das Licht ist nicht nötig.
+
+
+            Typische Richtwerte: 100–300 lx (dämmrig bis leicht hell)
+          default: 200
+          selector:
+            number:
+              min: 0
+              max: 2000
+              step: 10
+              unit_of_measurement: lx
+              mode: slider
+
+        lux_boost_enabled:
+          name: Helligkeits-Boost bei Dunkelheit aktivieren
+          description: >
+            Wenn aktiviert, wird die konfigurierte Slot-Helligkeit automatisch erhöht
+            sobald der Lux-Wert unter den Boost-Schwellenwert fällt.
+            Nützlich wenn z. B. nachts mehr Licht gewünscht ist als tagsüber im gleichen Zeitfenster.
+          default: false
+          selector:
+            boolean:
+
+        lux_boost_threshold:
+          name: Boost-Schwellenwert (Lux)
+          description: >
+            Unterhalb dieses Lux-Werts wird der Helligkeits-Boost angewendet.
+
+
+            Typische Richtwerte: 10–50 lx (dunkel bis sehr dunkel)
+          default: 30
+          selector:
+            number:
+              min: 0
+              max: 500
+              step: 5
+              unit_of_measurement: lx
+              mode: slider
+
+        lux_boost_amount:
+          name: Boost-Betrag (%)
+          description: >
+            Um wie viel Prozent soll die Helligkeit erhöht werden wenn der Boost aktiv ist?
+            Die resultierende Helligkeit wird auf maximal 100% begrenzt.
+          default: 30
+          selector:
+            number:
+              min: 1
+              max: 100
+              step: 1
+              unit_of_measurement: "%"
               mode: slider
 
     # ─────────────────────────────────────────────
@@ -605,6 +700,22 @@ variables:
   ts5_color_temp: !input ts5_color_temp
   ts5_rgb_color: !input ts5_rgb_color
 
+  # Lux-Einstellungen
+  lux_enabled: !input lux_enabled
+  lux_sensor: !input lux_sensor
+  lux_max_threshold: !input lux_max_threshold
+  lux_boost_enabled: !input lux_boost_enabled
+  lux_boost_threshold: !input lux_boost_threshold
+  lux_boost_amount: !input lux_boost_amount
+
+  # Aktueller Lux-Wert (9999 wenn Sensor deaktiviert → kein Sperren)
+  lux_value: >-
+    {%- if lux_enabled -%}{{ states(lux_sensor) | float(9999) }}{%- else -%}9999{%- endif -%}
+
+  # Lux erlaubt das Einschalten?
+  lux_allows_on: >-
+    {{ not lux_enabled or lux_value | float(9999) <= lux_max_threshold }}
+
   # Default/Fallback-Einstellungen
   default_enabled: !input default_enabled
   default_brightness: !input default_brightness
@@ -665,6 +776,15 @@ variables:
     {%- elif s == 5 -%}{{ ts5_rgb_color }}
     {%- else -%}{{ default_rgb_color }}{%- endif -%}
 
+  # Endgültige Helligkeit: Slot/Default + optionaler Lux-Boost (max 100%)
+  final_brightness: >-
+    {%- set base = active_brightness | int -%}
+    {%- if lux_enabled and lux_boost_enabled and lux_value | float(9999) <= lux_boost_threshold -%}
+      {{ [base + lux_boost_amount | int, 100] | min }}
+    {%- else -%}
+      {{ base }}
+    {%- endif -%}
+
 # ─────────────────────────────────────────────
 # AKTIONEN
 # ─────────────────────────────────────────────
@@ -675,7 +795,7 @@ actions:
           - condition: trigger
             id: "trigger_on"
           - condition: template
-            value_template: "{{ active_slot | int > 0 or default_enabled }}"
+            value_template: "{{ (active_slot | int > 0 or default_enabled) and lux_allows_on }}"
         sequence:
           # Fade-In: Licht erst auf 1% setzen, dann hochdimmen
           - choose:
@@ -701,7 +821,7 @@ actions:
                           - action: light.turn_on
                             target: !input light_targets
                             data:
-                              brightness_pct: "{{ active_brightness | int }}"
+                              brightness_pct: "{{ final_brightness | int }}"
                               color_temp_kelvin: "{{ active_color_temp | int }}"
                               transition: "{{ fade_in_duration | int }}"
                       - conditions:
@@ -711,14 +831,14 @@ actions:
                           - action: light.turn_on
                             target: !input light_targets
                             data:
-                              brightness_pct: "{{ active_brightness | int }}"
+                              brightness_pct: "{{ final_brightness | int }}"
                               rgb_color: "{{ active_rgb_color }}"
                               transition: "{{ fade_in_duration | int }}"
                     default:
                       - action: light.turn_on
                         target: !input light_targets
                         data:
-                          brightness_pct: "{{ active_brightness | int }}"
+                          brightness_pct: "{{ final_brightness | int }}"
                           transition: "{{ fade_in_duration | int }}"
             # Kein Fade-In: Direkt einschalten
             default:
@@ -730,7 +850,7 @@ actions:
                       - action: light.turn_on
                         target: !input light_targets
                         data:
-                          brightness_pct: "{{ active_brightness | int }}"
+                          brightness_pct: "{{ final_brightness | int }}"
                           kelvin: "{{ active_color_temp | int }}"
                           transition: 1
                   - conditions:
@@ -740,14 +860,14 @@ actions:
                       - action: light.turn_on
                         target: !input light_targets
                         data:
-                          brightness_pct: "{{ active_brightness | int }}"
+                          brightness_pct: "{{ final_brightness | int }}"
                           rgb_color: "{{ active_rgb_color }}"
                           transition: 1
                 default:
                   - action: light.turn_on
                     target: !input light_targets
                     data:
-                      brightness_pct: "{{ active_brightness | int }}"
+                      brightness_pct: "{{ final_brightness | int }}"
                       transition: 1
 
       # ── LICHT AUSSCHALTEN (Trigger OFF) ───────

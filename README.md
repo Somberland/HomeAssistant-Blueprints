@@ -9,7 +9,7 @@ A collection of Home Assistant automation blueprints for smart lighting control.
 
 ## 📦 Available Blueprints
 
-### 1. 💡 Timeslot Light Control v1.5 (`timeslot-light.yaml`)
+### 1. 💡 Timeslot Light Control v1.6 (`timeslot-light.yaml`)
 
 > Trigger-based light automation with a 24/7 fallback, up to 5 configurable time windows with individual light settings per slot, and optional Fade-In / Fade-Out transitions.
 
@@ -24,6 +24,7 @@ A collection of Home Assistant automation blueprints for smart lighting control.
 | **Default / Fallback** | 24h fallback settings when no time slot is active (on by default) |
 | **Time slots** | Up to 5 independent time windows (e.g. 18:00–23:00) |
 | **Per-slot settings** | Brightness (%), Color Temperature (K), or RGB color |
+| **Lux sensor** | Only activate when below lux threshold; optional brightness boost in darkness |
 | **Fade-In** | Soft ramp-up from 0 → target brightness (configurable duration) |
 | **Fade-Out** | Soft ramp-down to 0 before turning off (configurable duration) |
 | **Off delay** | Configurable delay before turning off after trigger clears |
@@ -34,7 +35,10 @@ A collection of Home Assistant automation blueprints for smart lighting control.
 2. Blueprint checks **which time slot is currently active**
 3. If a slot is active → lights turn on with that slot's settings (+ optional Fade-In)
 4. If **no slot is active** → fallback settings are used if enabled (default: on)
-5. **Trigger clears** → lights turn off after the configured delay (+ optional Fade-Out)
+5. If a **lux sensor** is configured → light only turns on when lux is below the threshold
+6. **Trigger clears** → lights turn off after the configured delay (+ optional Fade-Out)
+
+> **💡 Tip – Gaps between time slots:** If the fallback is disabled and no slot is active, triggers are silently ignored — the light won't turn on. Use this intentionally as a **block period** (e.g. no motion activation during daytime).
 
 #### Configuration
 
@@ -50,6 +54,22 @@ A collection of Home Assistant automation blueprints for smart lighting control.
 <summary><b>💡 Light Settings</b></summary>
 
 - **Light Targets** *(required)*: Select lights by entity, area (room), or device — mix and match freely
+
+</details>
+
+<details>
+<summary><b>☀️ Lux Sensor (Optional)</b></summary>
+
+Adds ambient light awareness to the automation:
+
+| Setting | Description |
+|---|---|
+| Enable | Toggle lux control on/off |
+| Lux Sensor | Any `illuminance` sensor entity |
+| Max threshold | Don't turn on if lux is **above** this value (default: 200 lx) |
+| Brightness boost | Optionally increase brightness when lux is very low |
+| Boost threshold | Apply boost when lux is below this value (default: 30 lx) |
+| Boost amount | How much to add to the slot brightness, capped at 100% (default: +30%) |
 
 </details>
 
