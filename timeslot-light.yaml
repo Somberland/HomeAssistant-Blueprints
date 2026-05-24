@@ -1,9 +1,9 @@
 blueprint:
-  name: Timeslot Light Control v1.8
+  name: Timeslot Light Control v1.9
   description: >
     # 💡 Timeslot Light Control
 
-    **Version: 1.8** · [GitHub](https://github.com/Somberland/HomeAssistant-Blueprints) · Autor: Phil Skorpil
+    **Version: 1.9** · [GitHub](https://github.com/Somberland/HomeAssistant-Blueprints) · Autor: Phil Skorpil
 
 
     Steuere deine Lichter mit Zeitfenstern, Fade-In/Fade-Out und flexibler Lichteinstellung.
@@ -153,15 +153,20 @@ blueprint:
               unit_of_measurement: seconds
               mode: slider
 
+    # ─────────────────────────────────────────────
+    # AUSSCHALTEN
+    # ─────────────────────────────────────────────
+    turnoff_settings:
+      name: "🔴 Ausschalten (Optional)"
+      icon: mdi:lightbulb-off-outline
+      collapsed: true
+      input:
         reset_brightness_on_off:
           name: Helligkeit vor Ausschalten zurücksetzen
           description: >
             Setzt die Helligkeit direkt vor dem Ausschalten auf den konfigurierten Wert zurück (transition: 0).
             So startet die Lampe beim nächsten **manuellen** Einschalten wieder auf der gewünschten Helligkeit –
-            und nicht auf 1% (dem Fade-Out-Endwert).
-
-
-            Gilt sowohl mit als auch ohne Fade-Out.
+            und nicht auf 1% wenn zuvor ein Fade-Out aktiv war.
           default: true
           selector:
             boolean:
