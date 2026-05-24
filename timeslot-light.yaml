@@ -1,9 +1,9 @@
 blueprint:
-  name: Timeslot Light Control v1.7
+  name: Timeslot Light Control v1.8
   description: >
     # 💡 Timeslot Light Control
 
-    **Version: 1.7** · [GitHub](https://github.com/Somberland/HomeAssistant-Blueprints) · Autor: Phil Skorpil
+    **Version: 1.8** · [GitHub](https://github.com/Somberland/HomeAssistant-Blueprints) · Autor: Phil Skorpil
 
 
     Steuere deine Lichter mit Zeitfenstern, Fade-In/Fade-Out und flexibler Lichteinstellung.
@@ -151,6 +151,32 @@ blueprint:
               max: 60
               step: 1
               unit_of_measurement: seconds
+              mode: slider
+
+        reset_brightness_on_off:
+          name: Helligkeit vor Ausschalten zurücksetzen
+          description: >
+            Setzt die Helligkeit direkt vor dem Ausschalten auf den konfigurierten Wert zurück (transition: 0).
+            So startet die Lampe beim nächsten **manuellen** Einschalten wieder auf der gewünschten Helligkeit –
+            und nicht auf 1% (dem Fade-Out-Endwert).
+
+
+            Gilt sowohl mit als auch ohne Fade-Out.
+          default: true
+          selector:
+            boolean:
+
+        reset_brightness_value:
+          name: Helligkeit nach Reset (%)
+          description: >
+            Auf welche Helligkeit soll vor dem Ausschalten zurückgesetzt werden?
+          default: 100
+          selector:
+            number:
+              min: 1
+              max: 100
+              step: 1
+              unit_of_measurement: "%"
               mode: slider
 
     # ─────────────────────────────────────────────
@@ -728,6 +754,8 @@ variables:
   fade_in_duration: !input fade_in_duration
   use_fade_out: !input use_fade_out
   fade_out_duration: !input fade_out_duration
+  reset_brightness_on_off: !input reset_brightness_on_off
+  reset_brightness_value: !input reset_brightness_value
 
   # Aktuell aktives Zeitfenster ermitteln (0 = keins aktiv)
   # Unterstützt auch mitternachts-übergreifende Fenster (z. B. 23:00–08:00):
@@ -896,17 +924,36 @@ actions:
                   # Warten bis Fade-Out abgeschlossen
                   - delay:
                       seconds: "{{ fade_out_duration | int }}"
-                  # Schritt 2: Licht ausschalten
+                  # Schritt 2: Optional Helligkeit zurücksetzen (für nächstes manuelles Einschalten)
+                  - if:
+                      - condition: template
+                        value_template: "{{ reset_brightness_on_off }}"
+                    then:
+                      - action: light.turn_on
+                        target: !input light_targets
+                        data:
+                          brightness_pct: "{{ reset_brightness_value | int }}"
+                          transition: 0
+                  # Schritt 3: Licht ausschalten
                   - action: light.turn_off
                     target: !input light_targets
                     data:
                       transition: 0
-            # Kein Fade-Out: Direkt ausschalten
+            # Kein Fade-Out: Optional Helligkeit zurücksetzen, dann ausschalten
             default:
+              - if:
+                  - condition: template
+                    value_template: "{{ reset_brightness_on_off }}"
+                then:
+                  - action: light.turn_on
+                    target: !input light_targets
+                    data:
+                      brightness_pct: "{{ reset_brightness_value | int }}"
+                      transition: 0
               - action: light.turn_off
                 target: !input light_targets
                 data:
-                  transition: 1
+                  transition: 0
 
 mode: restart
 max_exceeded: silent
