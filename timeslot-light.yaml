@@ -1,9 +1,9 @@
 blueprint:
-  name: Timeslot Light Control v1.4
+  name: Timeslot Light Control v1.5
   description: >
     # 💡 Timeslot Light Control
 
-    **Version: 1.4** · [GitHub](https://github.com/Somberland/HomeAssistant-Blueprints) · Autor: Phil Skorpil
+    **Version: 1.5** · [GitHub](https://github.com/Somberland/HomeAssistant-Blueprints) · Autor: Phil Skorpil
 
 
     Steuere deine Lichter mit Zeitfenstern, Fade-In/Fade-Out und flexibler Lichteinstellung.
@@ -219,15 +219,15 @@ blueprint:
 
         ts1_start:
           name: Startzeit
-          description: Startzeit des Zeitfensters (z. B. 18:00)
-          default: "18:00:00"
+          description: Startzeit des Zeitfensters (z. B. 06:00)
+          default: "06:00:00"
           selector:
             time:
 
         ts1_end:
           name: Endzeit
-          description: Endzeit des Zeitfensters (z. B. 23:00)
-          default: "23:00:00"
+          description: Endzeit des Zeitfensters (z. B. 09:00)
+          default: "09:00:00"
           selector:
             time:
 
@@ -292,13 +292,13 @@ blueprint:
 
         ts2_start:
           name: Startzeit
-          default: "07:00:00"
+          default: "09:00:00"
           selector:
             time:
 
         ts2_end:
           name: Endzeit
-          default: "09:00:00"
+          default: "12:00:00"
           selector:
             time:
 
@@ -365,7 +365,7 @@ blueprint:
 
         ts3_end:
           name: Endzeit
-          default: "14:00:00"
+          default: "17:00:00"
           selector:
             time:
 
@@ -426,13 +426,13 @@ blueprint:
 
         ts4_start:
           name: Startzeit
-          default: "16:00:00"
+          default: "17:00:00"
           selector:
             time:
 
         ts4_end:
           name: Endzeit
-          default: "18:00:00"
+          default: "22:00:00"
           selector:
             time:
 
