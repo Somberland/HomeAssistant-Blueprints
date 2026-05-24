@@ -6,9 +6,9 @@ A collection of Home Assistant automation blueprints for smart lighting control.
 
 ## 📦 Available Blueprints
 
-### 1. 💡 Timeslot Light Control (`timeslot-light.yaml`)
+### 1. 💡 Timeslot Light Control v1.2 (`timeslot-light.yaml`)
 
-> Trigger-based light automation with up to 5 configurable time windows, individual light settings per slot, and optional Fade-In / Fade-Out transitions.
+> Trigger-based light automation with a 24/7 fallback, up to 5 configurable time windows with individual light settings per slot, and optional Fade-In / Fade-Out transitions.
 
 [![Import Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://github.com/Somberland/HomeAssistant-Blueprints/blob/main/timeslot-light.yaml)
 
@@ -18,6 +18,7 @@ A collection of Home Assistant automation blueprints for smart lighting control.
 |---|---|
 | **Trigger** | Binary Sensor (motion, door, etc.) or Schedule helper |
 | **Light targets** | Entities, Areas (rooms) and/or Devices — all in one selector |
+| **Default / Fallback** | 24h fallback settings when no time slot is active (on by default) |
 | **Time slots** | Up to 5 independent time windows (e.g. 18:00–23:00) |
 | **Per-slot settings** | Brightness (%), Color Temperature (K), or RGB color |
 | **Fade-In** | Soft ramp-up from 0 → target brightness (configurable duration) |
@@ -28,8 +29,8 @@ A collection of Home Assistant automation blueprints for smart lighting control.
 
 1. **Trigger activates** (sensor turns ON or schedule starts)
 2. Blueprint checks **which time slot is currently active**
-3. If a slot is active → lights turn on with that slot's brightness & color settings (+ optional Fade-In)
-4. If **no slot is active** → nothing happens
+3. If a slot is active → lights turn on with that slot's settings (+ optional Fade-In)
+4. If **no slot is active** → fallback settings are used if enabled (default: on)
 5. **Trigger clears** → lights turn off after the configured delay (+ optional Fade-Out)
 
 #### Configuration
@@ -50,6 +51,19 @@ A collection of Home Assistant automation blueprints for smart lighting control.
 </details>
 
 <details>
+<summary><b>🌟 Default / Fallback Settings</b></summary>
+
+Used when no time slot is currently active. Enabled by default — this makes the blueprint work out of the box without configuring any time slots.
+
+- **Enable/Disable**: Toggle the fallback on or off
+- **Brightness**: 1–100 %
+- **Color Mode**: Color Temperature (K) / RGB / Brightness only
+- **Color Temp**: 2000–6500 K
+- **RGB Color**: Full color picker
+
+</details>
+
+<details>
 <summary><b>🌅 Fade In / Fade Out (Optional)</b></summary>
 
 - **Fade-In**: Enable smooth turn-on transition; set duration in seconds (1–60 s)
@@ -60,7 +74,7 @@ A collection of Home Assistant automation blueprints for smart lighting control.
 <details>
 <summary><b>⏰ Time Slots 1–5 (each Optional)</b></summary>
 
-Each of the 5 time slots can be independently configured:
+Each of the 5 time slots can be independently configured and takes priority over the fallback:
 
 | Setting | Description |
 |---|---|
@@ -76,6 +90,7 @@ Each of the 5 time slots can be independently configured:
 
 #### Example Use Cases
 
+- **Simple 24/7**: Just enable the fallback, set brightness/color — done. No time slots needed.
 - **Evening ambiance**: 18:00–23:00 → 50% brightness, 2700 K warm white
 - **Morning boost**: 07:00–09:00 → 100% brightness, 5000 K cool white
 - **Night mode**: 23:00–00:00 → 10% brightness, 2200 K very warm
