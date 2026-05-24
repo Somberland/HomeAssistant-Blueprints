@@ -1,9 +1,9 @@
 blueprint:
-  name: Timeslot Light Control v1.2
+  name: Timeslot Light Control v1.3
   description: >
     # 💡 Timeslot Light Control
 
-    **Version: 1.2**
+    **Version: 1.3**
 
     Steuere deine Lichter mit Zeitfenstern, Fade-In/Fade-Out und flexibler Lichteinstellung.
 
@@ -700,7 +700,7 @@ actions:
                             target: !input light_targets
                             data:
                               brightness_pct: "{{ active_brightness | int }}"
-                              kelvin: "{{ active_color_temp | int }}"
+                              color_temp_kelvin: "{{ active_color_temp | int }}"
                               transition: "{{ fade_in_duration | int }}"
                       - conditions:
                           - condition: template
