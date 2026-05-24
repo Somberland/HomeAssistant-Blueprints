@@ -2,11 +2,14 @@
 
 A collection of Home Assistant automation blueprints for smart lighting control.
 
+**Author:** Phil Skorpil · [GitHub @Somberland](https://github.com/Somberland)
+**Repository:** [github.com/Somberland/HomeAssistant-Blueprints](https://github.com/Somberland/HomeAssistant-Blueprints)
+
 ---
 
 ## 📦 Available Blueprints
 
-### 1. 💡 Timeslot Light Control v1.3 (`timeslot-light.yaml`)
+### 1. 💡 Timeslot Light Control v1.4 (`timeslot-light.yaml`)
 
 > Trigger-based light automation with a 24/7 fallback, up to 5 configurable time windows with individual light settings per slot, and optional Fade-In / Fade-Out transitions.
 
