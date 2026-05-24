@@ -1,9 +1,9 @@
 blueprint:
-  name: Timeslot Light Control v1.6
+  name: Timeslot Light Control v1.7
   description: >
     # 💡 Timeslot Light Control
 
-    **Version: 1.6** · [GitHub](https://github.com/Somberland/HomeAssistant-Blueprints) · Autor: Phil Skorpil
+    **Version: 1.7** · [GitHub](https://github.com/Somberland/HomeAssistant-Blueprints) · Autor: Phil Skorpil
 
 
     Steuere deine Lichter mit Zeitfenstern, Fade-In/Fade-Out und flexibler Lichteinstellung.
@@ -730,14 +730,20 @@ variables:
   fade_out_duration: !input fade_out_duration
 
   # Aktuell aktives Zeitfenster ermitteln (0 = keins aktiv)
-  # >- + Jinja2 whitespace-control sorgt für sauberen Integer-String ohne Leerzeichen
+  # Unterstützt auch mitternachts-übergreifende Fenster (z. B. 23:00–08:00):
+  # Wenn start > end → Fenster geht über Mitternacht → t >= start ODER t < end
   active_slot: >-
     {%- set t = now().strftime('%H:%M:%S') -%}
-    {%- if ts1_enabled and ts1_start <= t < ts1_end -%}1
-    {%- elif ts2_enabled and ts2_start <= t < ts2_end -%}2
-    {%- elif ts3_enabled and ts3_start <= t < ts3_end -%}3
-    {%- elif ts4_enabled and ts4_start <= t < ts4_end -%}4
-    {%- elif ts5_enabled and ts5_start <= t < ts5_end -%}5
+    {%- macro in_slot(en, s, e) -%}
+      {%- if en -%}
+        {%- if s <= e -%}{{ s <= t < e }}{%- else -%}{{ t >= s or t < e }}{%- endif -%}
+      {%- else -%}False{%- endif -%}
+    {%- endmacro -%}
+    {%- if in_slot(ts1_enabled, ts1_start, ts1_end) == 'True' -%}1
+    {%- elif in_slot(ts2_enabled, ts2_start, ts2_end) == 'True' -%}2
+    {%- elif in_slot(ts3_enabled, ts3_start, ts3_end) == 'True' -%}3
+    {%- elif in_slot(ts4_enabled, ts4_start, ts4_end) == 'True' -%}4
+    {%- elif in_slot(ts5_enabled, ts5_start, ts5_end) == 'True' -%}5
     {%- else -%}0{%- endif -%}
 
   active_brightness: >-
