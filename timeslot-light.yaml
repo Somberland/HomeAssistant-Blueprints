@@ -1,9 +1,9 @@
 blueprint:
-  name: Timeslot Light Control v2.0
+  name: Timeslot Light Control v2.1
   description: >
     # 💡 Timeslot Light Control
 
-    **Version: 2.0** · [GitHub](https://github.com/Somberland/HomeAssistant-Blueprints) · Autor: Phil Skorpil
+    **Version: 2.1** · [GitHub](https://github.com/Somberland/HomeAssistant-Blueprints) · Autor: Phil Skorpil
 
 
     Steuere deine Lichter mit Zeitfenstern, Fade-In/Fade-Out und flexibler Lichteinstellung.
@@ -843,78 +843,36 @@ actions:
           - condition: template
             value_template: "{{ (active_slot | int > 0 or default_enabled) and lux_allows_on }}"
         sequence:
-          # Fade-In: Licht erst auf 1% setzen, dann hochdimmen
+          # Licht einschalten – transition bestimmt ob Fade-In oder direkt.
+          # Kein "erst auf 1% setzen" – Lampe faded von aktueller Helligkeit zum Ziel.
+          # Verhindert Dip auf 0% wenn Automation bei laufendem Fade-Out neu startet.
           - choose:
               - conditions:
                   - condition: template
-                    value_template: "{{ use_fade_in }}"
+                    value_template: "{{ active_color_mode == 'color_temp' }}"
                 sequence:
-                  # Schritt 1: Licht bei 1% einschalten (kein Übergang)
-                  - action: light.turn_on
-                    target: !input light_targets
-                    data:
-                      brightness_pct: 1
-                      transition: 0
-                  # Kurze Pause
-                  - delay:
-                      milliseconds: 200
-                  # Schritt 2: Auf Zielhelligkeit einblenden (mit Fade-Dauer)
-                  - choose:
-                      - conditions:
-                          - condition: template
-                            value_template: "{{ active_color_mode == 'color_temp' }}"
-                        sequence:
-                          - action: light.turn_on
-                            target: !input light_targets
-                            data:
-                              brightness_pct: "{{ final_brightness | int }}"
-                              color_temp_kelvin: "{{ active_color_temp | int }}"
-                              transition: "{{ fade_in_duration | int }}"
-                      - conditions:
-                          - condition: template
-                            value_template: "{{ active_color_mode == 'rgb' }}"
-                        sequence:
-                          - action: light.turn_on
-                            target: !input light_targets
-                            data:
-                              brightness_pct: "{{ final_brightness | int }}"
-                              rgb_color: "{{ active_rgb_color }}"
-                              transition: "{{ fade_in_duration | int }}"
-                    default:
-                      - action: light.turn_on
-                        target: !input light_targets
-                        data:
-                          brightness_pct: "{{ final_brightness | int }}"
-                          transition: "{{ fade_in_duration | int }}"
-            # Kein Fade-In: Direkt einschalten
-            default:
-              - choose:
-                  - conditions:
-                      - condition: template
-                        value_template: "{{ active_color_mode == 'color_temp' }}"
-                    sequence:
-                      - action: light.turn_on
-                        target: !input light_targets
-                        data:
-                          brightness_pct: "{{ final_brightness | int }}"
-                          kelvin: "{{ active_color_temp | int }}"
-                          transition: 1
-                  - conditions:
-                      - condition: template
-                        value_template: "{{ active_color_mode == 'rgb' }}"
-                    sequence:
-                      - action: light.turn_on
-                        target: !input light_targets
-                        data:
-                          brightness_pct: "{{ final_brightness | int }}"
-                          rgb_color: "{{ active_rgb_color }}"
-                          transition: 1
-                default:
                   - action: light.turn_on
                     target: !input light_targets
                     data:
                       brightness_pct: "{{ final_brightness | int }}"
-                      transition: 1
+                      color_temp_kelvin: "{{ active_color_temp | int }}"
+                      transition: "{{ fade_in_duration | int if use_fade_in else 1 }}"
+              - conditions:
+                  - condition: template
+                    value_template: "{{ active_color_mode == 'rgb' }}"
+                sequence:
+                  - action: light.turn_on
+                    target: !input light_targets
+                    data:
+                      brightness_pct: "{{ final_brightness | int }}"
+                      rgb_color: "{{ active_rgb_color }}"
+                      transition: "{{ fade_in_duration | int if use_fade_in else 1 }}"
+            default:
+              - action: light.turn_on
+                target: !input light_targets
+                data:
+                  brightness_pct: "{{ final_brightness | int }}"
+                  transition: "{{ fade_in_duration | int if use_fade_in else 1 }}"
 
       # ── LICHT AUSSCHALTEN (Trigger OFF) ───────
       - conditions:
