@@ -1,9 +1,9 @@
 blueprint:
-  name: Timeslot Light Control v1.9
+  name: Timeslot Light Control v2.0
   description: >
     # 💡 Timeslot Light Control
 
-    **Version: 1.9** · [GitHub](https://github.com/Somberland/HomeAssistant-Blueprints) · Autor: Phil Skorpil
+    **Version: 2.0** · [GitHub](https://github.com/Somberland/HomeAssistant-Blueprints) · Autor: Phil Skorpil
 
 
     Steuere deine Lichter mit Zeitfenstern, Fade-In/Fade-Out und flexibler Lichteinstellung.
@@ -162,12 +162,19 @@ blueprint:
       collapsed: true
       input:
         reset_brightness_on_off:
-          name: Helligkeit vor Ausschalten zurücksetzen
+          name: Manueller Brightness-Reset (Fallback)
           description: >
-            Setzt die Helligkeit direkt vor dem Ausschalten auf den konfigurierten Wert zurück (transition: 0).
-            So startet die Lampe beim nächsten **manuellen** Einschalten wieder auf der gewünschten Helligkeit –
-            und nicht auf 1% wenn zuvor ein Fade-Out aktiv war.
-          default: true
+            **Nur aktivieren wenn `light.turn_off` mit Transition bei deinen Lampen nicht funktioniert.**
+
+
+            Standardmäßig nutzt der Blueprint `light.turn_off(transition)` – die Lampe blendet intern aus
+            und merkt sich die ursprüngliche Helligkeit für das nächste Einschalten. Das funktioniert bei
+            den meisten Zigbee/Hue-Lampen problemlos.
+
+
+            Falls deine Lampen das nicht unterstützen: Dieser Fallback dimmt manuell auf 1%, setzt dann
+            die Helligkeit zurück und schaltet aus. **⚠️ Kann kurz aufblitzen.**
+          default: false
           selector:
             boolean:
 
@@ -920,31 +927,36 @@ actions:
                   - condition: template
                     value_template: "{{ use_fade_out }}"
                 sequence:
-                  # Schritt 1: Auf 1% ausblenden
-                  - action: light.turn_on
-                    target: !input light_targets
-                    data:
-                      brightness_pct: 1
-                      transition: "{{ fade_out_duration | int }}"
-                  # Warten bis Fade-Out abgeschlossen
-                  - delay:
-                      seconds: "{{ fade_out_duration | int }}"
-                  # Schritt 2: Optional Helligkeit zurücksetzen (für nächstes manuelles Einschalten)
                   - if:
                       - condition: template
                         value_template: "{{ reset_brightness_on_off }}"
                     then:
+                      # Fallback für Lampen ohne turn_off(transition)-Support:
+                      # Manuell auf 1% dimmen → Helligkeit zurücksetzen → ausschalten
+                      # ⚠️ Kann kurz aufblitzen – nur aktivieren wenn turn_off(transition) nicht funktioniert
+                      - action: light.turn_on
+                        target: !input light_targets
+                        data:
+                          brightness_pct: 1
+                          transition: "{{ fade_out_duration | int }}"
+                      - delay:
+                          seconds: "{{ fade_out_duration | int }}"
                       - action: light.turn_on
                         target: !input light_targets
                         data:
                           brightness_pct: "{{ reset_brightness_value | int }}"
                           transition: 0
-                  # Schritt 3: Licht ausschalten
-                  - action: light.turn_off
-                    target: !input light_targets
-                    data:
-                      transition: 0
-            # Kein Fade-Out: Optional Helligkeit zurücksetzen, dann ausschalten
+                      - action: light.turn_off
+                        target: !input light_targets
+                        data:
+                          transition: 0
+                    else:
+                      # Standard: turn_off mit Transition – kein Flash, Lampe merkt sich Helligkeit vor Fade
+                      - action: light.turn_off
+                        target: !input light_targets
+                        data:
+                          transition: "{{ fade_out_duration | int }}"
+            # Kein Fade-Out: Ausschalten (ggf. mit Brightness-Reset als Fallback)
             default:
               - if:
                   - condition: template
@@ -958,7 +970,7 @@ actions:
               - action: light.turn_off
                 target: !input light_targets
                 data:
-                  transition: 0
+                  transition: 1
 
 mode: restart
 max_exceeded: silent
