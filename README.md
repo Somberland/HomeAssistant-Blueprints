@@ -9,7 +9,7 @@ A collection of Home Assistant automation blueprints for smart lighting control.
 
 ## 📦 Available Blueprints
 
-### 1. 💡 Timeslot Light Control v2.1 (`timeslot-light.yaml`)
+### 1. 💡 Timeslot Light Control v2.2 (`timeslot-light.yaml`)
 
 > Trigger-based light automation with a 24/7 fallback, up to 5 configurable time windows with individual light settings per slot, and optional Fade-In / Fade-Out transitions.
 
@@ -28,6 +28,7 @@ A collection of Home Assistant automation blueprints for smart lighting control.
 | **Fade-In** | Soft ramp-up from 0 → target brightness (configurable duration) |
 | **Fade-Out** | Soft ramp-down to 0 before turning off (configurable duration) |
 | **Off delay** | Configurable delay before turning off after trigger clears |
+| **Manual override** | If a target light is already on and *brighter* than the automation would set, it is left untouched — never dimmed down (manual control takes priority) |
 
 #### How It Works
 
@@ -91,6 +92,19 @@ Used when no time slot is currently active. Enabled by default — this makes th
 
 - **Fade-In**: Enable smooth turn-on transition; set duration in seconds (1–60 s)
 - **Fade-Out**: Enable smooth turn-off transition; set duration in seconds (1–60 s)
+
+</details>
+
+<details>
+<summary><b>🔒 Manual Override (Optional)</b></summary>
+
+Gives manual control priority over the automation:
+
+- **Enable**: When on, if a target light is already on **and brighter** than the automation would set (slot/fallback brightness incl. lux boost), it is left **untouched** — it is never dimmed down.
+- Example: a wall switch sets the light to 100%, you walk in at night and motion would dim it to 20% → with override it stays at 100%.
+- If the light is off, or dimmer/equal to the target brightness (e.g. mid Fade-Out), normal settings are applied — so the **v2.1 fade-out restore is preserved**.
+- The **off delay still applies** — a manually switched-on light is still turned off after the delay once the trigger clears.
+- ℹ️ If you manually set the light *dimmer* than the target, the trigger will raise it to the target brightness.
 
 </details>
 

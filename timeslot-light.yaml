@@ -1,9 +1,9 @@
 blueprint:
-  name: Timeslot Light Control v2.1
+  name: Timeslot Light Control v2.2
   description: >
     # 💡 Timeslot Light Control
 
-    **Version: 2.1** · [GitHub](https://github.com/Somberland/HomeAssistant-Blueprints) · Autor: Phil Skorpil
+    **Version: 2.2** · [GitHub](https://github.com/Somberland/HomeAssistant-Blueprints) · Autor: Phil Skorpil
 
 
     Steuere deine Lichter mit Zeitfenstern, Fade-In/Fade-Out und flexibler Lichteinstellung.
@@ -17,6 +17,7 @@ blueprint:
     - **Zeitfenster (Timeslots):** Bis zu 5 konfigurierbare Zeitfenster mit individueller Helligkeit, Farbtemperatur oder RGB-Farbe
     - **Helligkeitssensor (Lux):** Optionale Lux-basierte Steuerung – Licht nur bei Dunkelheit + automatischer Helligkeits-Boost
     - **Fade-In / Fade-Out:** Optionale sanfte Übergänge beim Ein- und Ausschalten
+    - **Manueller Vorrang (Override):** Ist das Licht beim Trigger bereits an (z. B. per Taster), bleiben Helligkeit/Farbe unverändert
 
 
     **So funktioniert es:**
@@ -102,6 +103,42 @@ blueprint:
             target:
               entity:
                 domain: light
+
+    # ─────────────────────────────────────────────
+    # MANUELLER VORRANG / OVERRIDE
+    # ─────────────────────────────────────────────
+    override_settings:
+      name: "🔒 Manueller Vorrang / Override (Optional)"
+      icon: mdi:gesture-tap-button
+      collapsed: true
+      input:
+        override_enabled:
+          name: Manuellen Vorrang aktivieren
+          description: >
+            Wenn aktiviert, hat manuelles Einschalten Vorrang: Ist ein Ziel-Licht beim Auslösen
+            des Triggers bereits an und **heller** als die Automation gerade setzen würde
+            (Zeitfenster-/Standard-Helligkeit inkl. Lux-Boost), bleibt es **unverändert** –
+            es wird **nicht heruntergedimmt**.
+
+
+            Beispiel: Taster schaltet das Licht auf 100 %, du kommst nachts rein, der
+            Bewegungsmelder würde auf 20 % dimmen → mit Override bleibt es bei 100 %.
+
+
+            Ist das Licht aus, oder dunkler/gleich der Ziel-Helligkeit (z. B. während eines
+            Fade-Outs), werden die normalen Einstellungen angewendet – der Fade-Out-Restore
+            aus v2.1 bleibt also erhalten.
+
+
+            **Hinweis:** Das Ausschalten über die Verzögerung (Off-Delay) bleibt aktiv – auch ein
+            manuell eingeschaltetes Licht wird nach Ablauf der Verzögerung ausgeschaltet.
+
+
+            ℹ️ Stellst du das Licht manuell **dunkler** als die Ziel-Helligkeit, wird es vom
+            Trigger auf die Ziel-Helligkeit hochgesetzt.
+          default: false
+          selector:
+            boolean:
 
     # ─────────────────────────────────────────────
     # FADE IN / FADE OUT
@@ -761,6 +798,38 @@ variables:
   default_color_temp: !input default_color_temp
   default_rgb_color: !input default_rgb_color
 
+  # Manueller Vorrang / Override
+  override_enabled: !input override_enabled
+  light_targets: !input light_targets
+
+  # Höchste aktuelle Helligkeit (%) aller bereits eingeschalteten Ziel-Lichter.
+  # Löst das Target (Entity/Area/Device) zu Licht-Entitäten auf und liest deren Helligkeit.
+  # Dient dem Override: liegt diese über der Ziel-Helligkeit → manuell heller → nicht anfassen.
+  # Nur relevant wenn override_enabled – sonst direkt 0 (kein Aufwand).
+  targets_brightness_max_pct: >-
+    {%- if not override_enabled -%}0
+    {%- else -%}
+      {%- set t = light_targets -%}
+      {%- set ns = namespace(ids=[]) -%}
+      {%- if t.entity_id is defined and t.entity_id -%}
+        {%- set ns.ids = ns.ids + (t.entity_id if t.entity_id is iterable and t.entity_id is not string else [t.entity_id]) -%}
+      {%- endif -%}
+      {%- if t.device_id is defined and t.device_id -%}
+        {%- set devs = t.device_id if t.device_id is iterable and t.device_id is not string else [t.device_id] -%}
+        {%- for d in devs -%}{%- set ns.ids = ns.ids + device_entities(d) -%}{%- endfor -%}
+      {%- endif -%}
+      {%- if t.area_id is defined and t.area_id -%}
+        {%- set ars = t.area_id if t.area_id is iterable and t.area_id is not string else [t.area_id] -%}
+        {%- for a in ars -%}{%- set ns.ids = ns.ids + area_entities(a) -%}{%- endfor -%}
+      {%- endif -%}
+      {%- set b = namespace(max=0) -%}
+      {%- for s in expand(ns.ids) | selectattr('domain', 'eq', 'light') | selectattr('state', 'eq', 'on') -%}
+        {%- set pct = (s.attributes.brightness | float(0)) / 255 * 100 -%}
+        {%- if pct > b.max -%}{%- set b.max = pct -%}{%- endif -%}
+      {%- endfor -%}
+      {{ b.max | round(0) | int }}
+    {%- endif -%}
+
   # Fade-Einstellungen
   use_fade_in: !input use_fade_in
   fade_in_duration: !input fade_in_duration
@@ -841,7 +910,9 @@ actions:
           - condition: trigger
             id: "trigger_on"
           - condition: template
-            value_template: "{{ (active_slot | int > 0 or default_enabled) and lux_allows_on }}"
+            value_template: >-
+              {{ (active_slot | int > 0 or default_enabled) and lux_allows_on
+                 and not (override_enabled and targets_brightness_max_pct | int > final_brightness | int) }}
         sequence:
           # Licht einschalten – transition bestimmt ob Fade-In oder direkt.
           # Kein "erst auf 1% setzen" – Lampe faded von aktueller Helligkeit zum Ziel.
